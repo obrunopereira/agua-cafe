@@ -22,12 +22,45 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Organizar arquivos
+        shell: bash
         run: |
           mkdir -p public/icons scripts tests
-          cp index.html app.js core.js style.css sw.js manifest.webmanifest public/
-          cp icon-192.png icon-512.png public/icons/
-          cp build.mjs serve.mjs scripts/
-          cp core.test.cjs tests/
+
+          organizar() {
+            local destino="$1"
+            local nome
+            nome=$(basename "$destino")
+
+            if [ -f "$destino" ]; then
+              echo "Arquivo correto: $destino"
+              return 0
+            fi
+
+            local origem
+            origem=$(find . -type f -name "$nome" \
+              -not -path './.git/*' -print -quit)
+
+            if [ -z "$origem" ]; then
+              echo "::error::Arquivo ausente: $nome"
+              return 1
+            fi
+
+            cp "$origem" "$destino"
+            echo "Organizado: $origem -> $destino"
+          }
+
+          organizar public/index.html
+          organizar public/app.js
+          organizar public/core.js
+          organizar public/style.css
+          organizar public/sw.js
+          organizar public/manifest.webmanifest
+          organizar public/icons/icon-192.png
+          organizar public/icons/icon-512.png
+          organizar scripts/build.mjs
+          organizar scripts/serve.mjs
+          organizar tests/core.test.cjs
+          organizar package.json
 
       - uses: actions/setup-node@v4
         with:
