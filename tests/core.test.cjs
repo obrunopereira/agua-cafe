@@ -1,0 +1,9 @@
+const test=require('node:test'),assert=require('node:assert/strict'),C=require('../public/core.js');
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
+test('conversões e campos desconhecidos',()=>{const d=C.composition({bicarbonato:48.8,calcio:20,magnesio:6});near(d.a,40.00136);near(d.h,74.648);assert.equal(C.composition({calcio:10}).h,null);assert.equal(C.composition({calcio:0,magnesio:0}).h,0);});
+test('validação decimal brasileira',()=>{assert.equal(C.num('2,5'),2.5);assert.equal(C.num(''),null);for(const x of ['-1','1e3','12abc','Infinity','1.234,56'])assert.ok(Number.isNaN(C.num(x)));});
+test('OCR: nomes, símbolos, tabela em uma linha',()=>{assert.deepEqual(C.parseLabel('Composição (mg/L)\nCálcio (Ca²⁺) 20,00\nMagnésio (Mg²⁺) 6,0\nHCO₃⁻ 48.8\nSódio 8,4 Cloreto 3,5').values,{calcio:20,magnesio:6,bicarbonato:48.8,sodio:8.4,cloreto:3.5});});
+test('OCR: g/L, limites, divergências e distinções',()=>{const d=C.parseLabel('Composição química (g/L)\nCa 0,02\nMg <0,001\nBicarbonatos 0,04\nBicarbonatos 0,05\nCloreto 0,004\nResíduo seco 0,2\nTDS 0,21');assert.equal(d.values.calcio,20);assert.equal(d.values.magnesio,undefined);assert.equal(d.values.bicarbonato,undefined);assert.equal(d.values.cloreto,4);assert.equal(d.values.cloro,undefined);assert.equal(d.values.residuo,200);assert.equal(d.values.tds,210);assert.ok(d.issues.length>=2);});
+test('mistura e solução',()=>{assert.deepEqual(C.mix(80,120,0,0,.5,1000),{a:40,h:60,va:500,vb:500});near(C.solve(80,20,35),.25);assert.equal(C.solve(20,30,40),null);});
+test('sais hidratados',()=>{const r=C.salts(0,0,40,70,1,.5);near(r.bicarb,40*84.0066/50.043);near(r.mg,35*246.47/100.0869);near(r.ca,35*147.014/100.0869);assert.equal(C.salts(50,70,40,70,1,.5),null);});
+test('CSV brasileiro e proteção de fórmulas',()=>{assert.equal(C.csv([['A',2.5,'=1+1','x"y',null]]),'\ufeff"A";"2,5";"\'=1+1";"x""y";""');});
